@@ -79,7 +79,6 @@ ShaderProperties wave = ShaderProperties(
     lightPos
 );
 
-float calcRotate(vec2 UV, float angle);
 float innerWave(float X, float freq, float speed, float time);
 
 
@@ -89,6 +88,9 @@ void main() {
 
     float currentAngle = 0.670923;
     float X = 0.0; // Base Input
+
+    float sinAngle = 0.0;
+    float cosAngle = 0.0;
     //Calculation Of Wave 
     float currentWave = 0.0;
 
@@ -101,7 +103,11 @@ void main() {
     float ddy = 0.0; 
 
     for (int i = 1; i <= numWaves; i++) {
-        X = calcRotate(UV, currentAngle);
+        sinAngle = sin(currentAngle);
+        cosAngle = cos(currentAngle);
+    
+        X = UV.x * cosAngle + UV.y * sinAngle; // Calculates the Rotation
+
         innerPart = innerWave(X, wave.startFreq, wave.startSpeed, time);
         sinePart = wave.startAmp * sin(innerPart);
         currentWave = exp(sinePart - 1);  //Full Wave Function
@@ -112,12 +118,12 @@ void main() {
         sharedDevPart = currentWave * (wave.startAmp * cos(innerPart)) * wave.startFreq;
 
   
-        ddx += sharedDevPart * cos(currentAngle);
-        ddy += sharedDevPart * sin(currentAngle); 
+        ddx += sharedDevPart * cosAngle;
+        ddy += sharedDevPart * sinAngle; 
 
         // Domain Warping thingy where it looks like the waves are pushing eachother
-        UV.x -= sharedDevPart * cos(currentAngle) * wave.warpStrength;
-        UV.y -= sharedDevPart * sin(currentAngle) * wave.warpStrength;
+        UV.x -= sharedDevPart * cosAngle * wave.warpStrength;
+        UV.y -= sharedDevPart * sinAngle * wave.warpStrength;
         
         wave.warpStrength *= 0.85;
         // Adjusts Angle and Makes Waves Smaller
@@ -168,10 +174,6 @@ void main() {
     finalColor = scaledResult;
 }
 
-float calcRotate(vec2 UV, float angle) {
-    float final = UV.x * cos(angle) + UV.y * sin(angle);
-    return final;
-}
 
 float innerWave(float X, float freq, float speed, float time) {
     // This calculates the freq(X + time*speed) Part

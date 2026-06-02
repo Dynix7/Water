@@ -87,7 +87,6 @@ ShaderProperties wave = ShaderProperties(
 
 
 //Declartions
-float calcRotate(vec2 UV, float angle);
 float innerWave(float X, float freq, float speed, float time);
 
 
@@ -118,7 +117,11 @@ void main() {
     // Original function from GPU gems is the Gernster Wave but like idk its complicated
     //Calculation is split to prevent recalculating when doing the deritvatives
     for (int i = 1; i <= numWaves; i++) {
-        X = calcRotate(UV, currentAngle);
+        sinAngle = sin(currentAngle);
+        cosAngle = cos(currentAngle);
+    
+        X = UV.x * cosAngle + UV.y * sinAngle;
+        
         innerPart = innerWave(X, wave.startFreq, wave.startSpeed, time);
         sinePart = wave.startAmp * sin(innerPart);
         currentWave = exp(sinePart - 1);  //Full Wave Function
@@ -131,12 +134,12 @@ void main() {
         // The Normals get really noisy when you add up the really small waves
         // So idk how to fix it so I'm just going to add a limit here for now
 
-        ddx += sharedDevPart * cos(currentAngle);
-        ddy += sharedDevPart * sin(currentAngle);
+        ddx += sharedDevPart * cosAngle;
+        ddy += sharedDevPart * sinAngle;
 
         // Domain Warping thingy where it looks like the waves are pushing eachother
-        UV.x -= sharedDevPart * cos(currentAngle) * wave.warpStrength;
-        UV.y -= sharedDevPart * sin(currentAngle) * wave.warpStrength;
+        UV.x -= sharedDevPart * cosAngle * wave.warpStrength;
+        UV.y -= sharedDevPart * sinAngle * wave.warpStrength;
         
         wave.warpStrength *= 0.85;
         // Adjusts Angle and Makes Waves Smaller
@@ -165,10 +168,6 @@ void main() {
     gl_Position = mvp * vec4(finalPos, 1.0);
 }
 
-float calcRotate(vec2 UV, float angle) {
-    float final = UV.x * cos(angle) + UV.y * sin(angle);
-    return final;
-}
 
 float innerWave(float X, float freq, float speed, float time) {
     // This calculates the freq(X + time*speed) Part
