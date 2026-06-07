@@ -14,6 +14,8 @@ uniform vec4 colDiffuse;
 uniform mat4 matNormal; // For per pixel normal caluclation
 
 uniform int numWaves;
+
+uniform float startAngle;
 uniform float startAmp;
 uniform float startFreq;
 uniform float startSpeed;
@@ -22,6 +24,7 @@ uniform float ampMult;
 uniform float freqMult;
 uniform float speedMult;
 uniform float warpStrength;
+uniform float warpMult;
 
 //Fragment Shader
 uniform vec4 lightColor;
@@ -32,13 +35,17 @@ uniform float specMult;
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
-#define TAU 6.2831853
+ // Skybox
+uniform samplerCube environmentMap;
+
+#define GOLDEN_STEP 0.618033988749895
 
 // Wave Properties
 struct ShaderProperties {
     // Vertex Shader
     int numWaves;
 
+    float startAngle;
     float startAmp;
     float startFreq;
     float startSpeed;
@@ -47,6 +54,7 @@ struct ShaderProperties {
     float freqMult;
     float speedMult;
     float warpStrength;
+    float warpMult;
 
     //Fragment Shader
     vec4 lightColor;
@@ -61,6 +69,7 @@ struct ShaderProperties {
 ShaderProperties wave = ShaderProperties(
     numWaves,
 
+    startAngle,
     startAmp,
     startFreq,
     startSpeed,
@@ -69,6 +78,7 @@ ShaderProperties wave = ShaderProperties(
     freqMult,
     speedMult,
     warpStrength,
+    warpMult,
 
     lightColor,
     ambient,
@@ -86,7 +96,7 @@ void main() {
     // Calculates Normal Per Pixel
     vec2 UV = startUV;
 
-    float currentAngle = 0.670923;
+    float currentAngle = wave.startAngle;
     float X = 0.0; // Base Input
 
     float sinAngle = 0.0;
@@ -125,39 +135,50 @@ void main() {
         UV.x -= sharedDevPart * cosAngle * wave.warpStrength;
         UV.y -= sharedDevPart * sinAngle * wave.warpStrength;
         
-        wave.warpStrength *= 0.85;
+        wave.warpStrength *= wave.warpMult;
         // Adjusts Angle and Makes Waves Smaller
         wave.startFreq *= wave.freqMult;
         wave.startAmp *= wave.ampMult;
         wave.startSpeed *= wave.speedMult;
-        currentAngle += 0.618033988749895;
+        currentAngle += GOLDEN_STEP;
    }
 
     vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
     calcNormal = vec3(matNormal * vec4(calcNormal, 0.0));
 
     vec3 normal = normalize(calcNormal);
-    vec3 viewDir = normalize(viewPos - fragPosition);
-    vec3 lightDir = normalize(lightPos - fragPosition);
+    vec3 viewDir = normalize(wave.viewPos - fragPosition);
+    vec3 lightDir = normalize(wave.lightPos - fragPosition);
 
     // Diffuse Factor Calculation
     float NdotL = dot(normal, lightDir); // 0 to 1
     float diffuseFactor = max(NdotL, 0.0);
     //diffuseFactor = pow(diffuseFactor, 1.3);
 
+    // Environment Reflections
+    // Reflect Vector = viewDir - 2(dot(normal, viewDir))  * normal
+
+    vec3 I = -viewDir; // Flips the viewDir so points correctly
+    vec3 reflectDir = reflect(I, normal);
+    vec3 reflectColor = texture(environmentMap, reflectDir).rgb;
+
 
     // Fresnel Calculation wikipedia.org/wiki/Schlick's_approximation
     float R0 = 0.020332; // From Refractive Indices of Air and Water. 1.0 vs 1.333
     float normalDotView = max(dot(normal, viewDir), 0.0);
-    float fresnel = pow((1.0 - normalDotView), 5); 
+    float fresnel = R0 + (1.0 - R0) * pow((1.0 - normalDotView), 5); 
     // pow((1.0 - normalDotView), 5) can also be used by itself since like the other terms r basically just 1 
+    vec3 fresnelColor = vec3(fresnel) * reflectColor; // Not used btw i'll probably remove if i remember to lol
 
     //Specular Reflection Calculation
-    float specular = 0.0;
+    float specularIntensity  = 0.0;
+    vec3 specularColor = {0.0, 0.0, 0.0};
     if (NdotL > 0.0) {
         vec3 halfVector = normalize(viewDir + lightDir);
-        specular = max(dot(normal, halfVector), 0.0);
-        specular = pow(specular, specFactor) * specMult * fresnel;
+        specularIntensity = max(dot(normal, halfVector), 0.0);
+        specularIntensity = pow(specularIntensity, wave.specFactor) * specMult * fresnel;
+
+        specularColor = specularIntensity * wave.lightColor.rgb;
     }
 
     // Combining Everything
@@ -165,8 +186,15 @@ void main() {
 
     vec3 diffuse = diffuseFactor * baseColor;
     vec3 ambientColor = baseColor * ambient;
-    
-    vec3 result = clamp(diffuse + ambientColor + specular, 0.0, 1.0);
+    ambientColor *= wave.lightColor.rgb;
+
+    vec3 waveBaseColor = diffuse + ambientColor;
+
+
+    vec3 finalRGB = mix(waveBaseColor, reflectColor, fresnel);
+    finalRGB += specularColor;
+
+    vec3 result = clamp(finalRGB, 0.0, 1.0);
     vec4 scaledResult = vec4(result, 1.0);
 
     //finalColor = vec4(normal * 0.5 + 0.5, 1.0);// For testing normals

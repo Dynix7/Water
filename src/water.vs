@@ -20,6 +20,8 @@ uniform mat4 matNormal; //Local Normal to World Normal
 uniform float time;
 
 uniform int numWaves;
+
+uniform float startAngle;
 uniform float startAmp;
 uniform float startFreq;
 uniform float startSpeed;
@@ -28,6 +30,7 @@ uniform float ampMult;
 uniform float freqMult;
 uniform float speedMult;
 uniform float warpStrength;
+uniform float warpMult;
 
 //Fragment Shader
 uniform vec4 lightColor;
@@ -38,13 +41,14 @@ uniform float specMult;
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
-#define TAU 6.2831853
+#define GOLDEN_STEP 0.618033988749895
 
 // Wave Properties
 struct ShaderProperties {
     // Vertex Shader
     int numWaves;
 
+    float startAngle;
     float startAmp;
     float startFreq;
     float startSpeed;
@@ -53,6 +57,7 @@ struct ShaderProperties {
     float freqMult;
     float speedMult;
     float warpStrength;
+    float warpMult;
 
     //Fragment Shader
     vec4 lightColor;
@@ -67,6 +72,7 @@ struct ShaderProperties {
 ShaderProperties wave = ShaderProperties(
     numWaves,
 
+    startAngle,
     startAmp,
     startFreq,
     startSpeed,
@@ -75,6 +81,7 @@ ShaderProperties wave = ShaderProperties(
     freqMult,
     speedMult,
     warpStrength,
+    warpMult,
 
     lightColor,
     ambient,
@@ -95,7 +102,7 @@ void main() {
     vec2 UV = vertexPosition.xz;
     startUV = UV;
 
-    float currentAngle = 0.670923;
+    float currentAngle = wave.startAngle;
     float X = 0.0; // Base Input
 
     float sinAngle = 0.0;
@@ -141,12 +148,12 @@ void main() {
         UV.x -= sharedDevPart * cosAngle * wave.warpStrength;
         UV.y -= sharedDevPart * sinAngle * wave.warpStrength;
         
-        wave.warpStrength *= 0.85;
+        wave.warpStrength *= wave.warpMult;
         // Adjusts Angle and Makes Waves Smaller
         wave.startFreq *= wave.freqMult;
         wave.startAmp *= wave.ampMult;
         wave.startSpeed *= wave.speedMult;
-        currentAngle += 0.618033988749895;
+        currentAngle += GOLDEN_STEP;
 
         waveSum += currentWave;
    }

@@ -12,6 +12,7 @@ struct ShaderProperties {
     // Vertex Shader
     int numWaves;
 
+    float startAngle;
     float startAmp;
     float startFreq;
     float startSpeed;
@@ -20,6 +21,7 @@ struct ShaderProperties {
     float freqMult;
     float speedMult;
     float warpStrength;
+    float warpMult;
 
     //Fragment Shader
     Vector4 lightColor;
@@ -30,12 +32,13 @@ struct ShaderProperties {
     Vector3 viewPos;
     Vector3 lightPos;
     // Shader Locations
-    int locations[14];
+    int locations[16];
 };
 
 typedef enum {
     numWavesLoc = 0, // 0
 
+    startAngleLoc,
     startAmpLoc,
     startFreqLoc,
     startSpeedLoc,
@@ -44,6 +47,7 @@ typedef enum {
     freqMultLoc,
     speedMultLoc,
     warpStrengthLoc,
+    warpMultLoc,
 
     lightColorLoc,
     ambientLoc,
@@ -51,7 +55,7 @@ typedef enum {
     specMultLoc,
 
     viewPosLoc,
-    lightPosLoc
+    lightPosLoc,
 } ShaderLocations;
 
 //Camera Setup
@@ -72,26 +76,32 @@ struct ShaderProperties wave = {
     // Vertex Shader
     .numWaves = 24,
     
-    .startAmp = 1.3,
+    .startAngle = 0.67,
+    .startAmp = 1.35,
     .startFreq = 0.3,
     .startSpeed = 4.5,
 
     .ampMult = 0.78,
     .freqMult = 1.2,
     .speedMult = 1.02,
-    .warpStrength = 2.2,
+    .warpStrength = 2.5,
+    .warpMult = 0.90,
 
     // Fragment Shader
-    .lightColor = (Vector4) {0.745, 0.918, 1.0, 1.0}, // Pretty Close to White
-    .ambient = 0.55,
+    .lightColor = (Vector4) {0.606, 0.6098, 0.7, 1.0}, // Pretty Close to White
+    .ambient = 0.85,
     .specFactor = 128.0,
-    .specMult = 3.5,
+    .specMult = 2.5,
     
     .viewPos = camera.position,
     .lightPos = lightCenter,
     .locations = {0}
 };
 
+// Things to Add to This struct is the specular color vs the light color for the base lighting
+
+
+const char* skyboxPath= "assets/Cubemap/Cubemap_Sky_05-512x512.png";
 
 // Other Globals
 float time = 0.0;
@@ -114,18 +124,14 @@ int main() {
     getLocations(waterShader, &wave);
 
     int cubemapType = MATERIAL_MAP_CUBEMAP;
-    int environmentMapLoc = GetShaderLocation(skyboxShader, "environmentMap");
+    int environmentMapLocSky = GetShaderLocation(skyboxShader, "environmentMap");
+    int environmentMapLocWater = GetShaderLocation(waterShader, "environmentMap");
 
-    //Skybox Model
+    //Skybox Model and shader
     Mesh cube = GenMeshCube(1.0, 1.0, 1.0);
     Model skybox = LoadModelFromMesh(cube);
     skybox.materials[0].shader = skyboxShader;
 
-    //Load Skybox
-    Image skyboxImage = LoadImage("assets/Cubemap/Cubemap_Sky_06-512x512.png");
-    TextureCubemap skyboxCubemap = LoadTextureCubemap(skyboxImage, CUBEMAP_LAYOUT_AUTO_DETECT);
-    skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = skyboxCubemap;
-    UnloadImage(skyboxImage);
 
     // Load Plane and assign shader
     Mesh planeMesh = GenMeshPlane(75, 75, 255, 255);
@@ -133,8 +139,19 @@ int main() {
     planeModel.materials[0].shader = waterShader;
 
 
-    // Tells Shader skybox is a cubemap
-    SetShaderValue(skyboxShader, environmentMapLoc, &cubemapType, SHADER_UNIFORM_INT);
+    //Load Skybox
+    Image skyboxImage = LoadImage(skyboxPath);
+    TextureCubemap skyboxCubemap = LoadTextureCubemap(skyboxImage, CUBEMAP_LAYOUT_AUTO_DETECT);
+    UnloadImage(skyboxImage);
+
+
+    // Assigns Cubemaps
+    skybox.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = skyboxCubemap;
+    planeModel.materials[0].maps[MATERIAL_MAP_CUBEMAP].texture = skyboxCubemap;
+
+    // Tells shaders that the skybox is a cubemap
+    SetShaderValue(skyboxShader, environmentMapLocSky, &cubemapType, SHADER_UNIFORM_INT);
+    SetShaderValue(waterShader, environmentMapLocWater, &cubemapType, SHADER_UNIFORM_INT);
 
     // Main Loop
     while (!WindowShouldClose()) {
@@ -147,7 +164,7 @@ int main() {
         
         //Any Rendering Stuff
         BeginDrawing();
-            ClearBackground(WHITE);
+            ClearBackground(BLACK);
             
             BeginMode3D(camera);
                 //Draws SkyBox
@@ -191,6 +208,7 @@ int main() {
 void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probably shouldve used &wave but im C pilled
     wave->locations[numWavesLoc] = GetShaderLocation(waterShader, "numWaves");
 
+    wave->locations[startAngleLoc] = GetShaderLocation(waterShader, "startAngle");
     wave->locations[startAmpLoc] = GetShaderLocation(waterShader, "startAmp");
     wave->locations[startFreqLoc] = GetShaderLocation(waterShader, "startFreq");
     wave->locations[startSpeedLoc] = GetShaderLocation(waterShader, "startSpeed");
@@ -199,6 +217,7 @@ void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probabl
     wave->locations[freqMultLoc] = GetShaderLocation(waterShader, "freqMult");
     wave->locations[speedMultLoc] = GetShaderLocation(waterShader, "speedMult");
     wave->locations[warpStrengthLoc] = GetShaderLocation(waterShader, "warpStrength");
+    wave->locations[warpMultLoc] = GetShaderLocation(waterShader, "warpMult");
 
     wave->locations[lightColorLoc] = GetShaderLocation(waterShader, "lightColor");
     wave->locations[ambientLoc] = GetShaderLocation(waterShader, "ambient");
@@ -217,6 +236,7 @@ void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave) {
 
     SetShaderValue(waterShader, wave->locations[numWavesLoc], &wave->numWaves, SHADER_UNIFORM_INT);
     
+    SetShaderValue(waterShader, wave->locations[startAngleLoc], &wave->startAngle, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[startAmpLoc], &wave->startAmp, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[startFreqLoc], &wave->startFreq, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[startSpeedLoc], &wave->startSpeed, SHADER_UNIFORM_FLOAT);
@@ -225,6 +245,7 @@ void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave) {
     SetShaderValue(waterShader, wave->locations[freqMultLoc], &wave->freqMult, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[speedMultLoc], &wave->speedMult, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[warpStrengthLoc], &wave->warpStrength, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[warpMultLoc], &wave->warpMult, SHADER_UNIFORM_FLOAT);
 
     SetShaderValue(waterShader, wave->locations[lightColorLoc], &wave->lightColor, SHADER_UNIFORM_VEC4);
     SetShaderValue(waterShader, wave->locations[ambientLoc], &wave->ambient, SHADER_UNIFORM_FLOAT);
@@ -234,3 +255,4 @@ void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave) {
     SetShaderValue(waterShader, wave->locations[viewPosLoc], &wave->viewPos, SHADER_UNIFORM_VEC3);
     SetShaderValue(waterShader, wave->locations[lightPosLoc], &wave->lightPos, SHADER_UNIFORM_VEC3);
 }
+
