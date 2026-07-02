@@ -25,6 +25,7 @@ uniform float startAngle;
 uniform float startAmp;
 uniform float startFreq;
 uniform float startSpeed;
+uniform float angleStep;
 
 uniform float ampMult;
 uniform float freqMult;
@@ -41,7 +42,6 @@ uniform float specMult;
 uniform vec3 viewPos;
 uniform vec3 lightPos;
 
-#define GOLDEN_STEP 0.618033988749895
 
 // Wave Properties
 struct ShaderProperties {
@@ -52,6 +52,7 @@ struct ShaderProperties {
     float startAmp;
     float startFreq;
     float startSpeed;
+    float angleStep;
 
     float ampMult;
     float freqMult;
@@ -76,6 +77,7 @@ ShaderProperties wave = ShaderProperties(
     startAmp,
     startFreq,
     startSpeed,
+    angleStep,
 
     ampMult,
     freqMult,
@@ -138,8 +140,6 @@ void main() {
         // for Y: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * sin(theta)
         sharedDevPart = currentWave * (wave.startAmp * cos(innerPart)) * wave.startFreq;
 
-        // The Normals get really noisy when you add up the really small waves
-        // So idk how to fix it so I'm just going to add a limit here for now
 
         ddx += sharedDevPart * cosAngle;
         ddy += sharedDevPart * sinAngle;
@@ -153,7 +153,7 @@ void main() {
         wave.startFreq *= wave.freqMult;
         wave.startAmp *= wave.ampMult;
         wave.startSpeed *= wave.speedMult;
-        currentAngle += GOLDEN_STEP;
+        currentAngle += wave.angleStep;
 
         waveSum += currentWave;
    }

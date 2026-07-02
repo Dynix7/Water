@@ -16,6 +16,7 @@ struct ShaderProperties {
     float startAmp;
     float startFreq;
     float startSpeed;
+    float angleStep;
 
     float ampMult;
     float freqMult;
@@ -32,7 +33,7 @@ struct ShaderProperties {
     Vector3 viewPos;
     Vector3 lightPos;
     // Shader Locations
-    int locations[16];
+    int locations[17];
 };
 
 typedef enum {
@@ -42,6 +43,7 @@ typedef enum {
     startAmpLoc,
     startFreqLoc,
     startSpeedLoc,
+    angleStepLoc,
 
     ampMultLoc,
     freqMultLoc,
@@ -69,26 +71,27 @@ Camera camera = {
 
 //Positions
 Vector3 planeCenter = {0.0, 0.0, 0.0};
-Vector3 lightCenter = {270.0, 70.0, -15.0};
+Vector3 lightCenter = {540.0, 140.0, -30.0};
 Vector3 origin = {0.0, 0.0, 0.0};
 
 struct ShaderProperties wave = {
     // Vertex Shader
-    .numWaves = 24,
+    .numWaves = 32,
     
     .startAngle = 0.67,
     .startAmp = 1.35,
-    .startFreq = 0.3,
+    .startFreq = 0.32,
     .startSpeed = 4.5,
+    .angleStep = 0.618033988749895, //Golden ratio thingy
 
-    .ampMult = 0.78,
+    .ampMult = 0.795,
     .freqMult = 1.2,
     .speedMult = 1.02,
-    .warpStrength = 2.5,
+    .warpStrength = 2.1,
     .warpMult = 0.90,
 
     // Fragment Shader
-    .lightColor = (Vector4) {0.606, 0.6098, 0.7, 1.0}, // Pretty Close to White
+    .lightColor = ((Vector4) {226, 155, 87, 1.0})/255.0, // Pretty Close to White
     .ambient = 0.85,
     .specFactor = 128.0,
     .specMult = 2.5,
@@ -101,7 +104,7 @@ struct ShaderProperties wave = {
 // Things to Add to This struct is the specular color vs the light color for the base lighting
 
 
-const char* skyboxPath= "assets/Cubemap/Cubemap_Sky_05-512x512.png";
+const char* skyboxPath= "assets/Cubemap/Cubemap_Sky_21-512x512.png";
 
 // Other Globals
 float time = 0.0;
@@ -181,7 +184,7 @@ int main() {
 
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
-                    DrawModel(planeModel, planeCenter, 1.0, DARKBLUE);     
+                    DrawModel(planeModel, planeCenter, 1.0, Color(45, 214, 173, 255));     
                     //DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
@@ -212,6 +215,7 @@ void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probabl
     wave->locations[startAmpLoc] = GetShaderLocation(waterShader, "startAmp");
     wave->locations[startFreqLoc] = GetShaderLocation(waterShader, "startFreq");
     wave->locations[startSpeedLoc] = GetShaderLocation(waterShader, "startSpeed");
+    wave->locations[angleStepLoc] = GetShaderLocation(waterShader, "angleStep");
 
     wave->locations[ampMultLoc] = GetShaderLocation(waterShader, "ampMult");
     wave->locations[freqMultLoc] = GetShaderLocation(waterShader, "freqMult");
@@ -240,6 +244,7 @@ void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave) {
     SetShaderValue(waterShader, wave->locations[startAmpLoc], &wave->startAmp, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[startFreqLoc], &wave->startFreq, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[startSpeedLoc], &wave->startSpeed, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[angleStepLoc], &wave->angleStep, SHADER_UNIFORM_FLOAT);
 
     SetShaderValue(waterShader, wave->locations[ampMultLoc], &wave->ampMult, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[freqMultLoc], &wave->freqMult, SHADER_UNIFORM_FLOAT);

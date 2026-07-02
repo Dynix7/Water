@@ -19,6 +19,7 @@ uniform float startAngle;
 uniform float startAmp;
 uniform float startFreq;
 uniform float startSpeed;
+uniform float angleStep;
 
 uniform float ampMult;
 uniform float freqMult;
@@ -38,7 +39,6 @@ uniform vec3 lightPos;
  // Skybox
 uniform samplerCube environmentMap;
 
-#define GOLDEN_STEP 0.618033988749895
 
 // Wave Properties
 struct ShaderProperties {
@@ -49,6 +49,7 @@ struct ShaderProperties {
     float startAmp;
     float startFreq;
     float startSpeed;
+    float angleStep;
 
     float ampMult;
     float freqMult;
@@ -73,6 +74,7 @@ ShaderProperties wave = ShaderProperties(
     startAmp,
     startFreq,
     startSpeed,
+    angleStep,
 
     ampMult,
     freqMult,
@@ -90,7 +92,10 @@ ShaderProperties wave = ShaderProperties(
 );
 
 float innerWave(float X, float freq, float speed, float time);
+vec4 toColor(float val);
 
+vec3 scatterColor = vec3(98.0, 238.0, 234.0)/255.0;
+vec3 tipColor = vec3(255.0, 255.0, 255.0)/255.0;
 
 void main() {
     // Calculates Normal Per Pixel
@@ -101,7 +106,8 @@ void main() {
 
     float sinAngle = 0.0;
     float cosAngle = 0.0;
-    //Calculation Of Wave 
+    //Calculation Of Wave
+    float waveSum = 0.0;
     float currentWave = 0.0;
 
     float innerPart = 0.0; //freq(X + time*speed)
@@ -127,7 +133,6 @@ void main() {
         // for Y: e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b * sin(theta)
         sharedDevPart = currentWave * (wave.startAmp * cos(innerPart)) * wave.startFreq;
 
-  
         ddx += sharedDevPart * cosAngle;
         ddy += sharedDevPart * sinAngle; 
 
@@ -140,7 +145,9 @@ void main() {
         wave.startFreq *= wave.freqMult;
         wave.startAmp *= wave.ampMult;
         wave.startSpeed *= wave.speedMult;
-        currentAngle += GOLDEN_STEP;
+        currentAngle += wave.angleStep;
+
+        waveSum += currentWave;
    }
 
     vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
@@ -153,13 +160,28 @@ void main() {
     // Diffuse Factor Calculation
     float NdotL = dot(normal, lightDir); // 0 to 1
     float diffuseFactor = max(NdotL, 0.0);
-    //diffuseFactor = pow(diffuseFactor, 1.3);
+
+    // Simulating Light Scattering based on the wave height
+
+    float H = max(waveSum - (wave.numWaves * 0.35), 0.0);
+    float heightFactor = smoothstep(-1.0, 4.5, H);
+
+    float distort = 0.25;
+    vec3 lightScatterDir = normalize(-lightDir + (normal * distort));
+
+    float scatterAlignment = max(dot(viewDir, lightScatterDir), 0.0);
+
+    float scatterPower = 5.0;
+    float subsurface = pow(scatterAlignment, scatterPower);
+
+    float totalScatterFactor = clamp(subsurface * heightFactor * 2.0, 0.0, 1.0);
+
+    float foamFactor = smoothstep(1.75, 4.0, H);
 
     // Environment Reflections
     // Reflect Vector = viewDir - 2(dot(normal, viewDir))  * normal
-
-    vec3 I = -viewDir; // Flips the viewDir so points correctly
-    vec3 reflectDir = reflect(I, normal);
+    // Flips the viewDir so points correctly
+    vec3 reflectDir = reflect(-viewDir, normal);
     vec3 reflectColor = texture(environmentMap, reflectDir).rgb;
 
 
@@ -172,7 +194,7 @@ void main() {
 
     //Specular Reflection Calculation
     float specularIntensity  = 0.0;
-    vec3 specularColor = {0.0, 0.0, 0.0};
+    vec3 specularColor = vec3(0.0);
     if (NdotL > 0.0) {
         vec3 halfVector = normalize(viewDir + lightDir);
         specularIntensity = max(dot(normal, halfVector), 0.0);
@@ -180,19 +202,28 @@ void main() {
 
         specularColor = specularIntensity * wave.lightColor.rgb;
     }
+  
 
     // Combining Everything
-    vec3 baseColor = colDiffuse.rgb * fragColor.rgb;
+    vec3 deepBaseColor = vec3(0.05, 0.2, 0.4);
+    vec3 shallowBaseColor = colDiffuse.rgb * fragColor.rgb;
+
+    vec3 baseColor = mix(deepBaseColor, shallowBaseColor, diffuseFactor);
 
     vec3 diffuse = diffuseFactor * baseColor;
-    vec3 ambientColor = baseColor * ambient;
-    ambientColor *= wave.lightColor.rgb;
+    vec3 ambientColor = deepBaseColor * ambient * wave.lightColor.rgb;
 
-    vec3 waveBaseColor = diffuse + ambientColor;
 
+    float ambientScatter = heightFactor * 0.45 * (1.0 - normalDotView);
+    vec3 scatterGlow = scatterColor * totalScatterFactor * wave.lightColor.rgb;
+    scatterGlow += ambientScatter * scatterColor;
+
+    vec3 waveBaseColor = diffuse + ambientColor + scatterGlow;
 
     vec3 finalRGB = mix(waveBaseColor, reflectColor, fresnel);
     finalRGB += specularColor;
+
+    finalRGB = mix(finalRGB, tipColor, foamFactor);
 
     vec3 result = clamp(finalRGB, 0.0, 1.0);
     vec4 scaledResult = vec4(result, 1.0);
@@ -200,6 +231,14 @@ void main() {
     //finalColor = vec4(normal * 0.5 + 0.5, 1.0);// For testing normals
     //finalColor = colDiffuse;
     finalColor = scaledResult;
+    //finalColor = vec4(coloredWater, 1.0);
+    //finalColor = vec4(finalRGB, 1.0);
+    //finalColor = vec4(totalScatterFactor, totalScatterFactor, totalScatterFactor, 1.0);
+    //finalColor = toColor(heightFactor);
+    //finalColor = toColor(foamFactor);
+    //finalColor = toColor(visFactor);
+    //finalColor = toColor(totalScatterFactor);
+    //finalColor = toColor(ambientScatter);
 }
 
 
@@ -207,4 +246,8 @@ float innerWave(float X, float freq, float speed, float time) {
     // This calculates the freq(X + time*speed) Part
     float sineResult = freq * (X + (time * speed));
     return sineResult;
+}
+
+vec4 toColor(float val) {
+    return vec4(val, val, val, 1.0);
 }
