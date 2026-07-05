@@ -1,4 +1,3 @@
-// This is basically just the skybox example
 #version 430
 
 in vec3 vertexPosition;
@@ -16,3 +15,4 @@ void main() {
     fragPosition = vertexPosition;
     gl_Position = clipPos.xyww;
 }
+// This is basically just the skybox example

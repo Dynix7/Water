@@ -100,8 +100,9 @@ float innerWave(float X, float freq, float speed, float time);
 
 
 void main() {
+    vec4 worldPos = matModel * vec4(vertexPosition, 1.0);
     vec3 finalPos = vertexPosition;
-    vec2 UV = vertexPosition.xz;
+    vec2 UV = worldPos.xz;
     startUV = UV;
 
     float currentAngle = wave.startAngle;
@@ -119,8 +120,8 @@ void main() {
     float sharedDevPart = 0.0; //e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1) * a*cos(b((cos(theta)*x+sin(theta)*y)+t)) * b
 
     // Partial Derivatives for Wave
-    float ddx = 0.0; 
-    float ddy = 0.0; 
+    float ddx = 0.0;
+    float ddy = 0.0;
 
     //Full Function is e^((a*sin(b((cos(theta)*x+sin(theta)*y)+t))-1)
     // Original function from GPU gems is the Gernster Wave but like idk its complicated

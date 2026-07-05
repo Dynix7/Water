@@ -91,7 +91,7 @@ struct ShaderProperties wave = {
     .warpMult = 0.90,
 
     // Fragment Shader
-    .lightColor = ((Vector4) {226, 155, 87, 1.0})/255.0, // Pretty Close to White
+    .lightColor = ((Vector4) {226, 155, 187, 1.0})/255.0, // Pretty Close to White
     .ambient = 0.85,
     .specFactor = 128.0,
     .specMult = 2.5,
@@ -137,7 +137,7 @@ int main() {
 
 
     // Load Plane and assign shader
-    Mesh planeMesh = GenMeshPlane(75, 75, 255, 255);
+    Mesh planeMesh = GenMeshPlane(50, 50, 255, 255);
     Model planeModel = LoadModelFromMesh(planeMesh);
     planeModel.materials[0].shader = waterShader;
 
@@ -184,7 +184,8 @@ int main() {
 
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
-                    DrawModel(planeModel, planeCenter, 1.0, Color(45, 214, 173, 255));     
+                    DrawModel(planeModel, planeCenter, 1.0, Color(45, 214, 173, 255));
+                    DrawModel(planeModel, (Vector3) {50.0, 0.0, 0.0}, 1.0, Color(45, 214, 173, 255));      
                     //DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
@@ -192,10 +193,10 @@ int main() {
             EndMode3D();
             DrawFPS(5, 5);
 
-            // char cameraPosText[64] = "";
-            // snprintf(cameraPosText, sizeof(cameraPosText), "%.1f, %.1f, %.1f", 
-            // camera.position.x, camera.position.y,camera.position.z);
-            // DrawText(cameraPosText, 1280/2, 720/2, 20, BLACK);
+            char cameraPosText[64] = "";
+            snprintf(cameraPosText, sizeof(cameraPosText), "%.1f, %.1f, %.1f", 
+            camera.position.x, camera.position.y,camera.position.z);
+            DrawText(cameraPosText, 1280/2, 720/2, 20, BLACK);
         EndDrawing();
     }
 
