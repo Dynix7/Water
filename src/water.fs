@@ -151,7 +151,7 @@ void main() {
    }
 
     vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
-    calcNormal = vec3(matNormal * vec4(calcNormal, 0.0));
+    //calcNormal = vec3(matNormal * vec4(calcNormal, 0.0)); // i not fully sure if I multiply by matNormal since I am using world coords
 
     vec3 normal = normalize(calcNormal);
     vec3 viewDir = normalize(wave.viewPos - fragPosition);
@@ -186,7 +186,7 @@ void main() {
 
 
     // Fresnel Calculation wikipedia.org/wiki/Schlick's_approximation
-    float R0 = 0.020332; // From Refractive Indices of Air and Water. 1.0 vs 1.333
+    float R0 = 0.0210065996258; // From Refractive Indices of Air and Water. 1.0 vs 1.3394 for sea water
     float normalDotView = max(dot(normal, viewDir), 0.0);
     float fresnel = R0 + (1.0 - R0) * pow((1.0 - normalDotView), 5); 
     // pow((1.0 - normalDotView), 5) can also be used by itself since like the other terms r basically just 1 
@@ -214,11 +214,13 @@ void main() {
     vec3 ambientColor = deepBaseColor * ambient * wave.lightColor.rgb;
 
 
-    float ambientScatter = heightFactor * 0.45 * (1.0 - normalDotView);
+    //float ambientScatter = heightFactor * 1.5 * (1.0 - normalDotView);
+    float ambientScatter = (heightFactor * 0.1) + (heightFactor * 0.25 * diffuseFactor);
     vec3 scatterGlow = scatterColor * totalScatterFactor * wave.lightColor.rgb;
     scatterGlow += ambientScatter * scatterColor;
 
     vec3 waveBaseColor = diffuse + ambientColor + scatterGlow;
+
 
     vec3 finalRGB = mix(waveBaseColor, reflectColor, fresnel);
     finalRGB += specularColor;
@@ -239,6 +241,8 @@ void main() {
     //finalColor = toColor(visFactor);
     //finalColor = toColor(totalScatterFactor);
     //finalColor = toColor(ambientScatter);
+    //finalColor = toColor(fresnel);
+    //finalColor = toColor(reflectFactor);
 }
 
 

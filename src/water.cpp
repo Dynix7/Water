@@ -2,10 +2,18 @@
 #include <raymath.h>
 #include <rlgl.h>
 #include <stdio.h>
+
+
+#define RAYGUI_IMPLEMENTATION
+#include "raygui.h"
 #define GLSL_VERSION 430
 
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
+
+#define X_TILES 5
+#define Y_TILES 5
+#define TILE_SIZE 50
 
 // Struct for Wave Properties
 struct ShaderProperties {
@@ -79,9 +87,9 @@ struct ShaderProperties wave = {
     .numWaves = 32,
     
     .startAngle = 0.67,
-    .startAmp = 1.35,
+    .startAmp = 1.20,
     .startFreq = 0.32,
-    .startSpeed = 4.5,
+    .startSpeed = 3.5,
     .angleStep = 0.618033988749895, //Golden ratio thingy
 
     .ampMult = 0.795,
@@ -101,10 +109,15 @@ struct ShaderProperties wave = {
     .locations = {0}
 };
 
+// UI slop
+bool showUI = true;
+Rectangle sliderPos1 = {100.0, 100.0, 150.0, 50.0};
+
+
 // Things to Add to This struct is the specular color vs the light color for the base lighting
 
 
-const char* skyboxPath= "assets/Cubemap/Cubemap_Sky_21-512x512.png";
+const char* skyboxPath= "assets/Cubemap/Cubemap_Sky_05-512x512.png";
 
 // Other Globals
 float time = 0.0;
@@ -135,7 +148,6 @@ int main() {
     Model skybox = LoadModelFromMesh(cube);
     skybox.materials[0].shader = skyboxShader;
 
-
     // Load Plane and assign shader
     Mesh planeMesh = GenMeshPlane(50, 50, 255, 255);
     Model planeModel = LoadModelFromMesh(planeMesh);
@@ -156,10 +168,25 @@ int main() {
     SetShaderValue(skyboxShader, environmentMapLocSky, &cubemapType, SHADER_UNIFORM_INT);
     SetShaderValue(waterShader, environmentMapLocWater, &cubemapType, SHADER_UNIFORM_INT);
 
+    float tempWaveVar = 24;
     // Main Loop
     while (!WindowShouldClose()) {
         //Things To Update Per loop
-        UpdateCamera(&camera, CAMERA_FREE);
+        UpdateCamera(&camera, CAMERA_CUSTOM);
+        if (IsKeyPressed(KEY_M)) {
+            showUI = !showUI;
+            EnableCursor();
+        }
+
+
+        // if (showUI) {
+        //     UpdateCamera(&camera, CAMERA_CUSTOM);
+        //     EnableCursor();
+        // } else {
+        //     UpdateCamera(&camera, CAMERA_FREE);
+        //     DisableCursor();
+        // }
+
         time = (float) GetTime();
 
         SetShaderValue(waterShader, timeLocation, &time, SHADER_UNIFORM_FLOAT);
@@ -185,20 +212,32 @@ int main() {
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
                     DrawModel(planeModel, planeCenter, 1.0, Color(45, 214, 173, 255));
-                    DrawModel(planeModel, (Vector3) {50.0, 0.0, 0.0}, 1.0, Color(45, 214, 173, 255));      
+                    DrawModel(planeModel, (Vector3) {50.0, 0.0, 0.0}, 1.0, Color(45, 214, 173, 255));
+                    DrawModel(planeModel, (Vector3) {100.0, 0.0, 0.0}, 1.0, Color(45, 214, 173, 255));
+                    DrawModel(planeModel, (Vector3) {50.0, 0.0, 50.0}, 1.0, Color(45, 214, 173, 255));
+                    DrawModel(planeModel, (Vector3) {50.0, 0.0, -50.0}, 1.0, Color(45, 214, 173, 255));
+                    DrawModel(planeModel, (Vector3) {0.0, 0.0, 50.0}, 1.0, Color(45, 214, 173, 255));   
+                    DrawModel(planeModel, (Vector3) {0.0, 0.0, -50.0}, 1.0, Color(45, 214, 173, 255));  
                     //DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
 
             EndMode3D();
-            DrawFPS(5, 5);
+        DrawFPS(5, 5);
 
-            char cameraPosText[64] = "";
-            snprintf(cameraPosText, sizeof(cameraPosText), "%.1f, %.1f, %.1f", 
-            camera.position.x, camera.position.y,camera.position.z);
-            DrawText(cameraPosText, 1280/2, 720/2, 20, BLACK);
+        char cameraPosText[64] = "";
+        snprintf(cameraPosText, sizeof(cameraPosText), "%.1f, %.1f, %.1f", 
+        camera.position.x, camera.position.y,camera.position.z);
+        DrawText(cameraPosText, 1280, 720, 20, BLACK);
+
+
+        GuiSliderBar(sliderPos1, "Number of Waves:", NULL, &tempWaveVar, 0, 256);
+        wave.numWaves = tempWaveVar;
+        
+
         EndDrawing();
     }
+
 
     //Unload stuf and close window
     UnloadModel(planeModel);

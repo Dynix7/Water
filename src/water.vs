@@ -145,7 +145,7 @@ void main() {
         ddx += sharedDevPart * cosAngle;
         ddy += sharedDevPart * sinAngle;
 
-        // Domain Warping thingy where it looks like the waves are pushing eachother
+        // Domain Warping thingy
         UV.x -= sharedDevPart * cosAngle * wave.warpStrength;
         UV.y -= sharedDevPart * sinAngle * wave.warpStrength;
         
@@ -162,11 +162,12 @@ void main() {
     // NOT USED, WILL DELETE LATER SINCE MOVED TO FRAGMENT SHADER
     //Calculates the normal (basically cross product) then normalizes it
     vec3 calcNormal = normalize(vec3(-ddx, 1.0, -ddy));
-    calcNormal = vec3(matNormal * vec4(calcNormal, 0.0)); // Turns Normal into World Space
+    //calcNormal = vec3(matNormal * vec4(calcNormal, 0.0)); // Turns Normal into World Space
+    // i not fully sure if I multiply by matNormal since I am using world coords
 
     
     finalPos.y += waveSum;
-    finalPos.y -= numWaves * 0.35;
+    finalPos.y -= numWaves * 0.365;
 
     // Finalize data stuff 
     fragTexCoord = vertexTexCoord;
