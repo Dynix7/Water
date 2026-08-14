@@ -129,7 +129,7 @@ void main() {
     float ddy = 0.0; 
 
     float distanceFromCamera = distance(viewPos, fragPosition);
-    float fogFactor = 1.0 - exp(-0.001 * distanceFromCamera);
+    float fogFactor = 1.0 - exp(-0.0015 * distanceFromCamera);
 
     for (int i = 1; i <= numWaves; i++) {
         sinAngle = sin(currentAngle);

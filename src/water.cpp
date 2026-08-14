@@ -10,8 +10,8 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
-#define X_TILES 5
-#define Y_TILES 5
+int X_TILES = 10;
+int Y_TILES = 10;
 #define TILE_SIZE 50
 
 // Struct for Wave Properties
@@ -88,7 +88,7 @@ Vector3 origin = {0.0, 0.0, 0.0};
 
 struct ShaderProperties wave = {
     // Vertex Shader
-    .numWaves = 24,
+    .numWaves = 20,
     
     .startAngle = 0.67,
     .startAmp = 1.20,
@@ -133,11 +133,14 @@ void getLocations(Shader waterShader, struct ShaderProperties *wave);
 void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave);
 void drawUI();
 
+Color waterBaseColor = Color(45, 214, 173, 255);
+
+
 int main() {
     // Setup Window
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chill Water fr");
-    SetTargetFPS(240);
+    SetTargetFPS(200);
     DisableCursor();
     // Shader Setup
     Shader waterShader = LoadShader("src/water.vs", "src/water.fs");
@@ -156,7 +159,7 @@ int main() {
     skybox.materials[0].shader = skyboxShader;
 
     // Load Plane and assign shader
-    Mesh planeMesh = GenMeshPlane(50, 50, 255, 255);
+    Mesh planeMesh = GenMeshPlane(50, 50, 200, 200);
     Model planeModel = LoadModelFromMesh(planeMesh);
     planeModel.materials[0].shader = waterShader;
 
@@ -212,13 +215,14 @@ int main() {
 
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
-                    DrawModel(planeModel, planeCenter, 1.0, Color(45, 214, 173, 255));
-                    DrawModel(planeModel, (Vector3) {50.0, 0.0, 0.0}, 1.0, Color(45, 214, 173, 255));
-                    DrawModel(planeModel, (Vector3) {100.0, 0.0, 0.0}, 1.0, Color(45, 214, 173, 255));
-                    DrawModel(planeModel, (Vector3) {50.0, 0.0, 50.0}, 1.0, Color(45, 214, 173, 255));
-                    DrawModel(planeModel, (Vector3) {50.0, 0.0, -50.0}, 1.0, Color(45, 214, 173, 255));
-                    DrawModel(planeModel, (Vector3) {0.0, 0.0, 50.0}, 1.0, Color(45, 214, 173, 255));   
-                    DrawModel(planeModel, (Vector3) {0.0, 0.0, -50.0}, 1.0, Color(45, 214, 173, 255));  
+                    int gridX = (int) X_TILES / 2;
+                    int gridY = (int) Y_TILES / 2;
+
+                    for (int i = 0; i < X_TILES; i++) {
+                        for (int j = -gridY; j < gridY; j++) {
+                            DrawModel(planeModel, (Vector3) {i*TILE_SIZE, 0.0, j*TILE_SIZE}, 1.0, waterBaseColor);
+                        }
+                    }
                     //DrawModelWires(planeModel, planeCenter, 1.0, RAYWHITE);
                     rlEnableBackfaceCulling();
                 EndShaderMode();
@@ -270,6 +274,7 @@ void drawUI() {
 
     GuiSliderBar((Rectangle) {90.0, 460.0, 150.0, 25.0}, "Scatter Factor", NULL, &wave.scatterFactorAdj, 0.0, 5.0);
     GuiSliderBar((Rectangle) {90.0, 490.0, 150.0, 25.0}, "Foam Factor", NULL, &wave.foamFactorAdj, 0.0, 15.0);
+    
 
     
 }
