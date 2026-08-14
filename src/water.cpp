@@ -3,7 +3,6 @@
 #include <rlgl.h>
 #include <stdio.h>
 
-
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #define GLSL_VERSION 430
@@ -37,11 +36,13 @@ struct ShaderProperties {
     float ambient;
     float specFactor;
     float specMult;
+    float scatterFactorAdj;
+    float foamFactorAdj;
 
     Vector3 viewPos;
     Vector3 lightPos;
     // Shader Locations
-    int locations[17];
+    int locations[19];
 };
 
 
@@ -64,6 +65,8 @@ typedef enum {
     ambientLoc,
     specFactorLoc,
     specMultLoc,
+    scatterFactorAdjLoc,
+    foamFactorAdjLoc,
 
     viewPosLoc,
     lightPosLoc,
@@ -85,7 +88,7 @@ Vector3 origin = {0.0, 0.0, 0.0};
 
 struct ShaderProperties wave = {
     // Vertex Shader
-    .numWaves = 32,
+    .numWaves = 24,
     
     .startAngle = 0.67,
     .startAmp = 1.20,
@@ -100,45 +103,23 @@ struct ShaderProperties wave = {
     .warpMult = 0.90,
 
     // Fragment Shader
-    .lightColor = ((Vector4) {226, 155, 187, 1.0})/255.0, // Pretty Close to White
+    .lightColor = ((Vector4) {226, 175, 187, 1.0})/255.0, // Pretty Close to White
     .ambient = 0.85,
     .specFactor = 128.0,
     .specMult = 2.5,
-    
+    .scatterFactorAdj = 1.0,
+    .foamFactorAdj = 1.0,
+
     .viewPos = camera.position,
     .lightPos = lightCenter,
     .locations = {0}
 };
 
-struct adjustableProperties {
-    // Vertex Shader
-    int numWaves = 32;
 
-    int startAngle = 0.67;
-    int startAmp = 1.20;
-    int startFreq = 0.32;
-    int startSpeed = 3.5;
-    int angleStep = 0.618033988749895;
-
-    int ampMult = 0.795;
-    int freqMult = 1.2;
-    int speedMult = 1.02;
-    int warpStrength = 2.1;
-    int warpMult = 0.90;
-
-    //Fragment Shader
-    Vector4 lightColor = ((Vector4) {226, 155, 187, 1.0})/255.0;
-    int ambient = 0.85;
-    int specFactor = 128.0;
-    int  specMult = 2.5;
-};
-
-struct adjustableProperties GUIproperties;
 
 // UI slop
 bool showUI = false;
-Rectangle sliderPos1 = {100.0, 100.0, 150.0, 50.0};
-
+float adjustableNumWaves = 24.0;
 
 // Things to Add to This struct is the specular color vs the light color for the base lighting
 
@@ -150,6 +131,7 @@ float time = 0.0;
 
 void getLocations(Shader waterShader, struct ShaderProperties *wave);
 void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave);
+void drawUI();
 
 int main() {
     // Setup Window
@@ -193,7 +175,6 @@ int main() {
     SetShaderValue(skyboxShader, environmentMapLocSky, &cubemapType, SHADER_UNIFORM_INT);
     SetShaderValue(waterShader, environmentMapLocWater, &cubemapType, SHADER_UNIFORM_INT);
 
-    float tempWaveVar = 24;
     // Main Loop
     UpdateCamera(&camera, CAMERA_FREE);
     while (!WindowShouldClose()) {
@@ -205,9 +186,7 @@ int main() {
             else 
                 DisableCursor();      
         }
-        if (!showUI) {
-            UpdateCamera(&camera, CAMERA_FREE);
-        }
+
 
         time = (float) GetTime();
 
@@ -251,15 +230,15 @@ int main() {
         snprintf(cameraPosText, sizeof(cameraPosText), "%.1f, %.1f, %.1f", 
         camera.position.x, camera.position.y,camera.position.z);
         DrawText(cameraPosText, 5, 25, 20, BLACK);
+        DrawText("M For Menu | Esc to Exit", 5, 45, 20, BLACK);
 
-
-        GuiSliderBar(sliderPos1, "Number of Waves:", NULL, &tempWaveVar, 0, 64);
-        wave.numWaves = tempWaveVar;
-        
+        if (!showUI)       
+            UpdateCamera(&camera, CAMERA_FREE);
+        else 
+            drawUI();
 
         EndDrawing();
     }
-
 
     //Unload stuf and close window
     UnloadModel(planeModel);
@@ -270,7 +249,30 @@ int main() {
     return 0;
 }
 
+void drawUI() {
+    GuiSliderBar((Rectangle) {90.0, 70.0, 150.0, 25.0}, "# Waves:", NULL, &adjustableNumWaves, 0.0, 64.0);
+    wave.numWaves = (int) adjustableNumWaves;
 
+    GuiSliderBar((Rectangle) {90.0, 100.0, 150.0, 25.0}, "Angle: ", NULL, &wave.startAngle, 0.0, 6.28);
+    GuiSliderBar((Rectangle) {90.0, 130.0, 150.0, 25.0}, "Amplitude", NULL, &wave.startAmp, 0.0, 4.0);
+    GuiSliderBar((Rectangle) {90.0, 160.0, 150.0, 25.0}, "Frequency", NULL, &wave.startFreq, 0.0, 1.0);
+    GuiSliderBar((Rectangle) {90.0, 190.0, 150.0, 25.0}, "Speed", NULL, &wave.startSpeed, 0.0, 15.0);
+    GuiSliderBar((Rectangle) {90.0, 220.0, 150.0, 25.0}, "Angle Step", NULL, &wave.angleStep, 0.0, 6.28);
+
+    GuiSliderBar((Rectangle) {90.0, 250.0, 150.0, 25.0}, "Amplitude Mult.", NULL, &wave.ampMult, 0.0, 1.0);
+    GuiSliderBar((Rectangle) {90.0, 280.0, 150.0, 25.0}, "Freq Multiplier", NULL, &wave.freqMult, 0.0, 5.0);
+    GuiSliderBar((Rectangle) {90.0, 310.0, 150.0, 25.0}, "Speed Multiplier", NULL, &wave.speedMult, 0.0, 5.0);
+    GuiSliderBar((Rectangle) {90.0, 340.0, 150.0, 25.0}, "Sharpness", NULL, &wave.warpStrength, 0.0, 15.0);
+    GuiSliderBar((Rectangle) {90.0, 370.0, 150.0, 25.0}, "Warp Mult.", NULL, &wave.warpMult, 0.0, 1.1);
+
+    GuiSliderBar((Rectangle) {90.0, 400.0, 150.0, 25.0}, "Ambient Light", NULL, &wave.ambient, 0.0, 5.0);
+    GuiSliderBar((Rectangle) {90.0, 430.0, 150.0, 25.0}, "Specular Mult.", NULL, &wave.specMult, 0.0, 10.0);
+
+    GuiSliderBar((Rectangle) {90.0, 460.0, 150.0, 25.0}, "Scatter Factor", NULL, &wave.scatterFactorAdj, 0.0, 5.0);
+    GuiSliderBar((Rectangle) {90.0, 490.0, 150.0, 25.0}, "Foam Factor", NULL, &wave.foamFactorAdj, 0.0, 15.0);
+
+    
+}
 
 void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probably shouldve used &wave but im C pilled
     wave->locations[numWavesLoc] = GetShaderLocation(waterShader, "numWaves");
@@ -291,6 +293,8 @@ void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probabl
     wave->locations[ambientLoc] = GetShaderLocation(waterShader, "ambient");
     wave->locations[specFactorLoc] = GetShaderLocation(waterShader, "specFactor");
     wave->locations[specMultLoc] = GetShaderLocation(waterShader, "specMult");
+    wave->locations[scatterFactorAdjLoc] = GetShaderLocation(waterShader, "scatterFactorAdj");
+    wave->locations[foamFactorAdjLoc] = GetShaderLocation(waterShader, "foamFactorAdj");
 
     wave->locations[viewPosLoc] = GetShaderLocation(waterShader, "viewPos");
     wave->locations[lightPosLoc] = GetShaderLocation(waterShader, "lightPos");
@@ -320,6 +324,9 @@ void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave) {
     SetShaderValue(waterShader, wave->locations[ambientLoc], &wave->ambient, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[specFactorLoc], &wave->specFactor, SHADER_UNIFORM_FLOAT);
     SetShaderValue(waterShader, wave->locations[specMultLoc], &wave->specMult, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[scatterFactorAdjLoc], &wave->scatterFactorAdj, SHADER_UNIFORM_FLOAT);
+    SetShaderValue(waterShader, wave->locations[foamFactorAdjLoc], &wave->foamFactorAdj, SHADER_UNIFORM_FLOAT);
+
 
     SetShaderValue(waterShader, wave->locations[viewPosLoc], &wave->viewPos, SHADER_UNIFORM_VEC3);
     SetShaderValue(waterShader, wave->locations[lightPosLoc], &wave->lightPos, SHADER_UNIFORM_VEC3);

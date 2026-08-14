@@ -11,6 +11,7 @@ out vec4 finalColor;
 uniform float time;
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
+uniform mat4 matModel;
 uniform mat4 matNormal; // For per pixel normal caluclation
 
 uniform int numWaves;
@@ -32,6 +33,8 @@ uniform vec4 lightColor;
 uniform float ambient;
 uniform float specFactor;
 uniform float specMult;
+uniform float scatterFactorAdj;
+uniform float foamFactorAdj;
 
 uniform vec3 viewPos;
 uniform vec3 lightPos;
@@ -62,6 +65,9 @@ struct ShaderProperties {
     float ambient;
     float specFactor;
     float specMult;
+    float scatterFactorAdj;
+    float foamFactorAdj;
+
 
     vec3 viewPos;
     vec3 lightPos;
@@ -86,6 +92,9 @@ ShaderProperties wave = ShaderProperties(
     ambient,
     specFactor,
     specMult,
+    scatterFactorAdj,
+    foamFactorAdj,
+
 
     viewPos,
     lightPos
@@ -96,6 +105,7 @@ vec4 toColor(float val);
 
 vec3 scatterColor = vec3(98.0, 238.0, 234.0)/255.0;
 vec3 tipColor = vec3(255.0, 255.0, 255.0)/255.0;
+vec3 fogColor = vec3(205, 205, 205)/255.0;
 
 void main() {
     // Calculates Normal Per Pixel
@@ -117,6 +127,9 @@ void main() {
     // Partial Derivatives for Wave
     float ddx = 0.0; 
     float ddy = 0.0; 
+
+    float distanceFromCamera = distance(viewPos, fragPosition);
+    float fogFactor = 1.0 - exp(-0.001 * distanceFromCamera);
 
     for (int i = 1; i <= numWaves; i++) {
         sinAngle = sin(currentAngle);
@@ -174,9 +187,9 @@ void main() {
     float scatterPower = 5.0;
     float subsurface = pow(scatterAlignment, scatterPower);
 
-    float totalScatterFactor = clamp(subsurface * heightFactor * 2.0, 0.0, 1.0);
+    float totalScatterFactor = clamp(subsurface * heightFactor * 2.0, 0.0, 1.0) * wave.scatterFactorAdj;
 
-    float foamFactor = smoothstep(1.75, 5.0, H);
+    float foamFactor = smoothstep(1.75, 6.0, H) * wave.foamFactorAdj;
 
     // Environment Reflections
     // Reflect Vector = viewDir - 2(dot(normal, viewDir))  * normal
@@ -226,14 +239,17 @@ void main() {
     finalRGB += specularColor;
 
     finalRGB = mix(finalRGB, tipColor, foamFactor);
-
+    finalRGB = mix(finalRGB, fogColor, fogFactor);
     vec3 result = clamp(finalRGB, 0.0, 1.0);
+
+
     vec4 scaledResult = vec4(result, 1.0);
 
     //finalColor = vec4(normal * 0.5 + 0.5, 1.0);// For testing normals
     //finalColor = colDiffuse;
     finalColor = scaledResult;
     //finalColor = vec4(coloredWater, 1.0);
+    //finalColor = vec4(fragPosition, 1.0);
     //finalColor = vec4(finalRGB, 1.0);
     //finalColor = vec4(totalScatterFactor, totalScatterFactor, totalScatterFactor, 1.0);
     //finalColor = toColor(heightFactor);
@@ -243,6 +259,8 @@ void main() {
     //finalColor = toColor(ambientScatter);
     //finalColor = toColor(fresnel);
     //finalColor = toColor(reflectFactor);
+    //finalColor = toColor(distanceFromCamera);
+    //finalColor = toColor(fogFactor);
 }
 
 
