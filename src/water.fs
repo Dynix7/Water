@@ -176,7 +176,7 @@ void main() {
 
     float totalScatterFactor = clamp(subsurface * heightFactor * 2.0, 0.0, 1.0);
 
-    float foamFactor = smoothstep(1.75, 4.0, H);
+    float foamFactor = smoothstep(1.75, 5.0, H);
 
     // Environment Reflections
     // Reflect Vector = viewDir - 2(dot(normal, viewDir))  * normal

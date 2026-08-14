@@ -44,6 +44,7 @@ struct ShaderProperties {
     int locations[17];
 };
 
+
 typedef enum {
     numWavesLoc = 0, // 0
 
@@ -109,8 +110,33 @@ struct ShaderProperties wave = {
     .locations = {0}
 };
 
+struct adjustableProperties {
+    // Vertex Shader
+    int numWaves = 32;
+
+    int startAngle = 0.67;
+    int startAmp = 1.20;
+    int startFreq = 0.32;
+    int startSpeed = 3.5;
+    int angleStep = 0.618033988749895;
+
+    int ampMult = 0.795;
+    int freqMult = 1.2;
+    int speedMult = 1.02;
+    int warpStrength = 2.1;
+    int warpMult = 0.90;
+
+    //Fragment Shader
+    Vector4 lightColor = ((Vector4) {226, 155, 187, 1.0})/255.0;
+    int ambient = 0.85;
+    int specFactor = 128.0;
+    int  specMult = 2.5;
+};
+
+struct adjustableProperties GUIproperties;
+
 // UI slop
-bool showUI = true;
+bool showUI = false;
 Rectangle sliderPos1 = {100.0, 100.0, 150.0, 50.0};
 
 
@@ -131,7 +157,6 @@ int main() {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Chill Water fr");
     SetTargetFPS(240);
     DisableCursor();
-
     // Shader Setup
     Shader waterShader = LoadShader("src/water.vs", "src/water.fs");
     Shader skyboxShader = LoadShader("src/sky.vs", "src/sky.fs");
@@ -170,22 +195,19 @@ int main() {
 
     float tempWaveVar = 24;
     // Main Loop
+    UpdateCamera(&camera, CAMERA_FREE);
     while (!WindowShouldClose()) {
         //Things To Update Per loop
-        UpdateCamera(&camera, CAMERA_CUSTOM);
         if (IsKeyPressed(KEY_M)) {
             showUI = !showUI;
-            EnableCursor();
+            if (showUI) 
+                EnableCursor();
+            else 
+                DisableCursor();      
         }
-
-
-        // if (showUI) {
-        //     UpdateCamera(&camera, CAMERA_CUSTOM);
-        //     EnableCursor();
-        // } else {
-        //     UpdateCamera(&camera, CAMERA_FREE);
-        //     DisableCursor();
-        // }
+        if (!showUI) {
+            UpdateCamera(&camera, CAMERA_FREE);
+        }
 
         time = (float) GetTime();
 
@@ -228,10 +250,10 @@ int main() {
         char cameraPosText[64] = "";
         snprintf(cameraPosText, sizeof(cameraPosText), "%.1f, %.1f, %.1f", 
         camera.position.x, camera.position.y,camera.position.z);
-        DrawText(cameraPosText, 1280, 720, 20, BLACK);
+        DrawText(cameraPosText, 5, 25, 20, BLACK);
 
 
-        GuiSliderBar(sliderPos1, "Number of Waves:", NULL, &tempWaveVar, 0, 256);
+        GuiSliderBar(sliderPos1, "Number of Waves:", NULL, &tempWaveVar, 0, 64);
         wave.numWaves = tempWaveVar;
         
 
@@ -247,6 +269,8 @@ int main() {
     CloseWindow();
     return 0;
 }
+
+
 
 void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probably shouldve used &wave but im C pilled
     wave->locations[numWavesLoc] = GetShaderLocation(waterShader, "numWaves");
