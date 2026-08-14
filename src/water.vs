@@ -1,4 +1,4 @@
-#version 430
+#version 330
 
 //In and Out Data
 in vec3 vertexPosition;

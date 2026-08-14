@@ -1,4 +1,4 @@
-#version 430
+#version 330
 
 // Inputs and Outputs
 in vec2 fragTexCoord;

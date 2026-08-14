@@ -1,6 +1,6 @@
-#include <raylib.h>
-#include <raymath.h>
-#include <rlgl.h>
+#include "raylib.h"
+#include "raymath.h"
+#include "rlgl.h"
 #include <stdio.h>
 
 #define RAYGUI_IMPLEMENTATION
@@ -10,8 +10,8 @@
 #define SCREEN_WIDTH 1280
 #define SCREEN_HEIGHT 720
 
-int X_TILES = 10;
-int Y_TILES = 10;
+float X_TILES = 8.0;
+float Y_TILES = 8.0;
 #define TILE_SIZE 50
 
 // Struct for Wave Properties
@@ -115,8 +115,6 @@ struct ShaderProperties wave = {
     .locations = {0}
 };
 
-
-
 // UI slop
 bool showUI = false;
 float adjustableNumWaves = 24.0;
@@ -127,7 +125,7 @@ float adjustableNumWaves = 24.0;
 const char* skyboxPath= "assets/Cubemap/Cubemap_Sky_05-512x512.png";
 
 // Other Globals
-float time = 0.0;
+float currentTime = 0.0;
 
 void getLocations(Shader waterShader, struct ShaderProperties *wave);
 void updateWaveProperties(Shader waterShader, struct ShaderProperties *wave);
@@ -191,9 +189,9 @@ int main() {
         }
 
 
-        time = (float) GetTime();
+        currentTime = (float) GetTime();
 
-        SetShaderValue(waterShader, timeLocation, &time, SHADER_UNIFORM_FLOAT);
+        SetShaderValue(waterShader, timeLocation, &currentTime, SHADER_UNIFORM_FLOAT);
         updateWaveProperties(waterShader, &wave);
         
         //Any Rendering Stuff
@@ -215,10 +213,10 @@ int main() {
 
                 BeginShaderMode(waterShader);
                     rlDisableBackfaceCulling();
-                    int gridX = (int) X_TILES / 2;
-                    int gridY = (int) Y_TILES / 2;
+                    int gridX = ((int) X_TILES) / 2;
+                    int gridY = ((int) Y_TILES) / 2;
 
-                    for (int i = 0; i < X_TILES; i++) {
+                    for (int i = -1; i < X_TILES; i++) {
                         for (int j = -gridY; j < gridY; j++) {
                             DrawModel(planeModel, (Vector3) {i*TILE_SIZE, 0.0, j*TILE_SIZE}, 1.0, waterBaseColor);
                         }
@@ -275,8 +273,8 @@ void drawUI() {
     GuiSliderBar((Rectangle) {90.0, 460.0, 150.0, 25.0}, "Scatter Factor", NULL, &wave.scatterFactorAdj, 0.0, 5.0);
     GuiSliderBar((Rectangle) {90.0, 490.0, 150.0, 25.0}, "Foam Factor", NULL, &wave.foamFactorAdj, 0.0, 15.0);
     
-
-    
+    GuiSliderBar((Rectangle) {90.0, 520.0, 150.0, 25.0}, "X Tiles", NULL, &X_TILES, 0.0, 20.0);
+    GuiSliderBar((Rectangle) {90.0, 550.0, 150.0, 25.0}, "Y Tiles", NULL, &Y_TILES, 0.0, 20.0);
 }
 
 void getLocations(Shader waterShader, struct ShaderProperties *wave) { //probably shouldve used &wave but im C pilled
