@@ -6,4 +6,5 @@ The normal vectors for the vertices and pixel are calculating using the partial 
 The lighting is a basic blinn-phong model with simulated scattering and some fake foam on the tips. <br>
 
 # Running The Program
-to be finished 
+## Linux
+I've statically linked raylib within the binary so you should be able to run it without installing any dependencies (other than stuff like x11, opengl, libc, etc.) Just make sure to run it in the folder since it needs to read the shader and seets <br>
