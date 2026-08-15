@@ -6,6 +6,7 @@ The normal vectors for the vertices and pixel are calculating using the partial 
 The lighting is a basic blinn-phong model with simulated scattering and some fake foam on the tips. <br>
 
 # Running The Program
+Use WASD to move around and press M for the menu to adjust wave settings and press ESC to exit. Performance should be good on all modern computers but varies on the wave parameters set.
 ## Linux
 I've statically linked raylib within the binary so you should be able to run it without installing any dependencies (that you probably don't already have) Just make sure to run it in the folder since it needs to read the shader and assets. It was tested working CachyOS<br>
 
