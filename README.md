@@ -7,4 +7,7 @@ The lighting is a basic blinn-phong model with simulated scattering and some fak
 
 # Running The Program
 ## Linux
-I've statically linked raylib within the binary so you should be able to run it without installing any dependencies (that you probably don't already have) Just make sure to run it in the folder since it needs to read the shader and assets <br>
+I've statically linked raylib within the binary so you should be able to run it without installing any dependencies (that you probably don't already have) Just make sure to run it in the folder since it needs to read the shader and assets. It was tested working CachyOS<br>
+
+## Windows
+Simply unzip the file provided for windows and run the .exe file within the the folder. Windows Smartscreen may pop up but just click continue to run the program. It was tested working on Windows 11.
