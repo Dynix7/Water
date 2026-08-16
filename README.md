@@ -1,10 +1,12 @@
 # Sum of Sines Water
 ![Image Of Water Simulation](WaterCover.png)
-This is also my first project in raylib and graphics programming. It was heavily inspired by the goat Youtuber Acerola and specifically the video:
+This is also my first project in raylib and graphics programming. I created it since I wanted to learn graphics programming and wanted to create something visually interesting. It was heavily inspired by the goat Youtuber Acerola and specifically the video:
 [How Games Fake Water - Acerola](https://www.youtube.com/watch?v=PH9q0HNBjT4) <br>
 This is a water simulation through the use of the sum of sines method where you add a lot of oscillating waves. The vertices of the plane are then displaced by the sum. <br>
 The normal vectors for the vertices and pixel are calculating using the partial derivatives to get the tangents along the plane and then the cross product to get the normal vector <br>
 The lighting is a basic blinn-phong model with simulated scattering and some fake foam on the tips. <br>
+It's written in C using the raylib library which provides some basic features like window and mesh management. The shaders are written in the glsl programming language <br>
+
 
 # Running The Program
 Use WASD to move around and press M for the menu to adjust wave settings and press ESC to exit. Performance should be good on all modern computers but varies on the wave parameters set.
