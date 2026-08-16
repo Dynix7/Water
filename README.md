@@ -13,3 +13,6 @@ I've statically linked raylib within the binary so you should be able to run it 
 
 ## Windows
 Simply unzip the file provided for windows and run the .exe file within the the folder. Windows Smartscreen may pop up but just click continue to run the program. It was tested working on Windows 11.
+
+# Disclaimer
+No AI was used in this project for code and assets
